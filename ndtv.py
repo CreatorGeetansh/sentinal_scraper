@@ -7,6 +7,10 @@ import time
 import uuid
 from groq import Groq
 import json
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
 
 # Initialize Groq client
 client = Groq(api_key="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")
@@ -43,14 +47,16 @@ def extract_location_and_crime_type(headline):
         return {"location": "Delhi", "crime_type": "N/A"}
 
 def download_selenium():
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    driver_path = "/usr/local/bin/chromedriver"
-    print(f"Using ChromeDriver at: {driver_path}")
-    driver = webdriver.Chrome(service=Service(driver_path), options=chrome_options)
-    return driver
+     chrome_options = Options()
+     chrome_options.add_argument("--headless=new")
+     chrome_options.add_argument("--no-sandbox")
+     chrome_options.add_argument("--disable-dev-shm-usage")
+    
+     driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=chrome_options
+     )
+     return driver
 
 def scrape_ndtv_news():
     try:
