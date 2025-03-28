@@ -1,7 +1,7 @@
-# Use Python 3.10 slim base image
-FROM python:3.10-slim
+# Use Python 3.10 slim-bullseye base image for better compatibility
+FROM python:3.10-slim-bullseye
 
-# Install system dependencies for Chrome and gnupg
+# Install system dependencies for Chrome
 RUN apt-get update && apt-get install -y \
     wget \
     unzip \
@@ -33,38 +33,40 @@ RUN apt-get update && apt-get install -y \
     libdrm2 \
     libgbm1 \
     libnspr4 \
-    libnss3 \
     libxkbcommon0 \
     libxshmfence1 \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Add Chrome's GPG key and install Chrome
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+# Install Chrome (stable version)
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
     && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
-# Install ChromeDriver 134.0.6998.165 manually
-RUN wget -q "https://storage.googleapis.com/chrome-for-testing-public/134.0.6998.165/linux64/chromedriver-linux64.zip" \
-    && unzip chromedriver-linux64.zip \
-    && mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
+# Install ChromeDriver (matching version)
+RUN CHROME_VERSION=$(google-chrome-stable --version | awk '{print $3}') \
+    && CHROME_MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d'.' -f1) \
+    && CHROMEDRIVER_VERSION=$(wget -q -O - "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAJOR_VERSION") \
+    && wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip" \
+    && unzip chromedriver_linux64.zip \
+    && mv chromedriver /usr/local/bin/ \
     && chmod +x /usr/local/bin/chromedriver \
-    && rm -rf chromedriver-linux64.zip chromedriver-linux64 \
+    && rm chromedriver_linux64.zip \
     && chromedriver --version
 
 # Set working directory
 WORKDIR /app
 
 # Copy requirements file
-COPY requirements.txt /app/
+COPY requirements.txt .
 
-# Install Python dependencies (webdriver-manager no longer needed)
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy your app files
-COPY app.py ndtv.py /app/
+# Copy application files
+COPY . .
 
 # Run FastAPI with Uvicorn
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
