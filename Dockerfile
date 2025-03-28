@@ -1,4 +1,4 @@
-# Use Python 3.10 slim-bullseye base image for better compatibility
+# Use Python 3.10 slim-bullseye base image
 FROM python:3.10-slim-bullseye
 
 # Install system dependencies for Chrome
@@ -38,22 +38,17 @@ RUN apt-get update && apt-get install -y \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Chrome (stable version)
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
-    && apt-get update \
-    && apt-get install -y google-chrome-stable \
-    && rm -rf /var/lib/apt/lists/*
+# Install Chrome for Testing (new recommended approach)
+RUN wget -q https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_120.0.6099.109-1_amd64.deb \
+    && apt-get install -y ./google-chrome-stable_120.0.6099.109-1_amd64.deb \
+    && rm google-chrome-stable_120.0.6099.109-1_amd64.deb
 
-# Install ChromeDriver (matching version)
-RUN CHROME_VERSION=$(google-chrome-stable --version | awk '{print $3}') \
-    && CHROME_MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d'.' -f1) \
-    && CHROMEDRIVER_VERSION=$(wget -q -O - "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAJOR_VERSION") \
-    && wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip" \
-    && unzip chromedriver_linux64.zip \
-    && mv chromedriver /usr/local/bin/ \
+# Install matching ChromeDriver (specific version)
+RUN wget -q https://storage.googleapis.com/chrome-for-testing-public/120.0.6099.109/linux64/chromedriver-linux64.zip \
+    && unzip chromedriver-linux64.zip \
+    && mv chromedriver-linux64/chromedriver /usr/local/bin/ \
     && chmod +x /usr/local/bin/chromedriver \
-    && rm chromedriver_linux64.zip \
+    && rm -rf chromedriver-linux64.zip chromedriver-linux64 \
     && chromedriver --version
 
 # Set working directory
