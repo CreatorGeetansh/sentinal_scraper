@@ -1,10 +1,10 @@
-# Use Python 3.10 with full Debian base for better compatibility
+# Use Python 3.10 with full Debian base
 FROM python:3.10-bullseye
 
-# Install minimal required dependencies for Chrome/Chromium
+# 1. Install Chrome browser and its dependencies
 RUN apt-get update && apt-get install -y \
     wget \
-    unzip \
+    gnupg \
     # Chrome dependencies
     libglib2.0-0 \
     libnss3 \
@@ -29,12 +29,20 @@ RUN apt-get update && apt-get install -y \
     libdbus-1-3 \
     libdrm2 \
     libgbm1 \
+    # Install Chrome stable
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
     # Clean up
     && rm -rf /var/lib/apt/lists/*
 
+# 2. Set up ChromeDriver via webdriver-manager
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# 3. Copy application files
 COPY . .
 
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]

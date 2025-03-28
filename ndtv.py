@@ -47,18 +47,21 @@ def extract_location_and_crime_type(headline):
         return {"location": "Delhi", "crime_type": "N/A"}
 
 def download_selenium():
-     chrome_options = Options()
-     chrome_options.add_argument("--headless=new")
-     chrome_options.add_argument("--no-sandbox")
-     chrome_options.add_argument("--disable-dev-shm-usage")
-     chrome_options.add_argument("--remote-debugging-port=9222")
-     chrome_options.add_argument("--disable-extensions")
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
     
-     driver = webdriver.Chrome(
+    # Explicitly point to Chrome binary location
+    chrome_options.binary_location = "/usr/bin/google-chrome-stable"
+    
+    driver = webdriver.Chrome(
         service=Service(ChromeDriverManager().install()),
         options=chrome_options
-     )
-     return driver
+    )
+    return driver
 
 def scrape_ndtv_news():
     try:
