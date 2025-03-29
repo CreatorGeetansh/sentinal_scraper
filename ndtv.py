@@ -1,19 +1,16 @@
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import time
 import uuid
 from groq import Groq
+import os
 import json
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.options import Options
+from driver import setup_driver
 
 # Initialize Groq client
-client = Groq(api_key="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")
+client = Groq(api_key=os.environ.get("api_key"))
+
 
 def extract_location_and_crime_type(headline):
     try:
@@ -46,27 +43,11 @@ def extract_location_and_crime_type(headline):
         print(f"Error extracting location and crime type: {e}")
         return {"location": "Delhi", "crime_type": "N/A"}
 
-def download_selenium():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
-    
-    # Explicitly point to Chrome binary location
-    chrome_options.binary_location = "/usr/bin/google-chrome-stable"
-    
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=chrome_options
-    )
-    return driver
 
 def scrape_ndtv_news():
     try:
         print("Initializing WebDriver...")
-        driver = download_selenium()
+        driver = setup_driver()
         print("WebDriver initialized successfully.")
     except Exception as e:
         print(f"Error initializing WebDriver: {e}")
