@@ -7,7 +7,7 @@ from groq import Groq
 import os
 from selenium import webdriver
 
-client = Groq(api_key="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")
+client = Groq(api_key=os.environ.get("api_key"))
 
 def extract_location_and_crime_type(headline):
     try:
@@ -125,11 +125,7 @@ def scrape_ani_news_page(driver, page_num):
 def scrape_ani_news():
     try:
         print("Initializing WebDriver...")
-        # driver = setup_driver()
-        # Set up Chrome options if needed
-        options = webdriver.ChromeOptions()
-        # Initialize the WebDriver (Selenium will manage the ChromeDriver automatically)
-        driver = webdriver.Chrome(options=options)
+        driver = setup_driver()
         print("WebDriver initialized successfully.")
         
         all_entries = []
@@ -151,4 +147,3 @@ def scrape_ani_news():
             driver.quit()
         return {"data": []}
     
-scrape_ani_news()
