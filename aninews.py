@@ -5,8 +5,9 @@ from bs4 import BeautifulSoup
 from driver import setup_driver
 from groq import Groq
 import os
+from selenium import webdriver
 
-client = Groq(api_key=os.environ.get("api_key")) 
+client = Groq(api_key="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")
 
 def extract_location_and_crime_type(headline):
     try:
@@ -65,8 +66,7 @@ def scrape_ani_news_page(driver, page_num):
             try:
                 # Extract image URL
                 img_container = card.find("div", class_="img-container")
-                img_element = img_container.find("img") if img_container else None
-                image_url = img_element.get("src", "N/A") if img_element else "N/A"
+                image_url = img_container.get("src", "N/A") if img_container else "N/A"
                 
                 # Extract headline and link from figcaption
                 figcaption = card.find("figcaption")
@@ -125,11 +125,15 @@ def scrape_ani_news_page(driver, page_num):
 def scrape_ani_news():
     try:
         print("Initializing WebDriver...")
-        driver = setup_driver()
+        # driver = setup_driver()
+        # Set up Chrome options if needed
+        options = webdriver.ChromeOptions()
+        # Initialize the WebDriver (Selenium will manage the ChromeDriver automatically)
+        driver = webdriver.Chrome(options=options)
         print("WebDriver initialized successfully.")
         
         all_entries = []
-        total_pages = 17  # Number of pages to scrape
+        total_pages = 7  # Number of pages to scrape
         
         for page_num in range(1, total_pages + 1):
             page_entries = scrape_ani_news_page(driver, page_num)
