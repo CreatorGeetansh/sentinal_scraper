@@ -8,9 +8,10 @@ from groq import Groq
 import os
 import json
 import logging
+import uuid
 
 # --- Configuration ---
-CACHE_UPDATE_INTERVAL_SECONDS = 600
+CACHE_UPDATE_INTERVAL_SECONDS = 920
 GROQ_API_KEY = os.environ.get("api_key")
 GROQ_MODEL = "llama3-8b-8192"
 GROQ_REQUEST_DELAY_SECONDS = 2.2 # Safety buffer for 30 RPM
