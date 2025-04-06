@@ -1,176 +1,206 @@
-# Remove: from groq import Groq
-# Remove: import os
-# Remove: import json
-# Remove: client = Groq(...)
-
 from selenium import webdriver
+from selenium.common.exceptions import WebDriverException
 from bs4 import BeautifulSoup
 import time
 import uuid
-# Remove: from groq import Groq
-# Remove: import os
-# Remove: import json
-from selenium import webdriver
-from driver import setup_driver # Ensure this import is correct
+from driver import setup_driver # Ensure this import is correct and driver.py works
 
-# REMOVE the entire extract_location_and_crime_type function
+# REMOVED Groq/JSON/OS imports
 
 def scrape_ndtv_news():
-    driver = None # Initialize driver to None
+    driver = None
+    print("--- Starting NDTV Scraper ---")
     try:
-        print("Initializing WebDriver...")
+        print("Initializing WebDriver for NDTV...")
         driver = setup_driver()
         print("WebDriver initialized successfully.")
     except Exception as e:
-        print(f"Error initializing WebDriver: {e}")
-        # Ensure driver is quit even if setup fails partially
-        if driver:
-             try: driver.quit()
-             except: pass
-        return {"data": []} # Return dict with data key
+        print(f"CRITICAL ERROR initializing WebDriver: {e}")
+        return {"data": []}
 
     url = "https://www.ndtv.com/delhi-news#pfrom=home-ndtv_mainnavigation"
     try:
         print(f"Loading webpage: {url}")
         driver.get(url)
         print("Webpage loaded successfully.")
+    except WebDriverException as e:
+        print(f"ERROR loading webpage: {e}")
+        if driver: driver.quit()
+        return {"data": []}
     except Exception as e:
-        print(f"Error loading webpage: {e}")
-        driver.quit()
-        return {"data": []} # Return dict with data key
+        print(f"UNEXPECTED ERROR loading webpage: {e}")
+        if driver: driver.quit()
+        return {"data": []}
 
-    print("Waiting for the page to load...")
-    time.sleep(5) # Consider if this can be replaced with explicit waits
+    print("Waiting for initial page load (5s)...")
+    time.sleep(5)
 
+    # --- Scrolling (Keep improved version) ---
     try:
-        print("Simulating scrolling to load more content...")
+        print("Attempting to scroll...")
         last_height = driver.execute_script("return document.body.scrollHeight")
         scroll_attempts = 0
-        max_scroll_attempts = 10 # Prevent infinite loops
+        max_scroll_attempts = 10
         while scroll_attempts < max_scroll_attempts:
+            print(f"Scrolling down (Attempt {scroll_attempts + 1})...")
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2) # Wait for content to potentially load
+            time.sleep(2.5)
             new_height = driver.execute_script("return document.body.scrollHeight")
+            print(f"  Old height: {last_height}, New height: {new_height}")
             if new_height == last_height:
-                print("Scrolling reached the end.")
+                print("Scrolling stopped, height didn't change.")
                 break
             last_height = new_height
             scroll_attempts += 1
-            print(f"Scroll attempt {scroll_attempts} completed.")
-        if scroll_attempts == max_scroll_attempts:
-            print("Max scroll attempts reached.")
-        print("Scrolling completed or max attempts reached.")
+        if scroll_attempts == max_scroll_attempts: print("Max scroll attempts reached.")
+        print("Scrolling finished.")
     except Exception as e:
-        print(f"Error during scrolling: {e}")
-        # Continue processing with whatever content was loaded
+        print(f"ERROR during scrolling: {e}. Proceeding with current content.")
 
+    # --- Get Page Source ---
     page_source = ""
     try:
         print("Extracting page source...")
         page_source = driver.page_source
-        print("Page source extracted successfully.")
+        if not page_source: print("WARNING: Page source is empty!")
+        else: print(f"Page source extracted successfully (length: {len(page_source)}).")
     except Exception as e:
-        print(f"Error extracting page source: {e}")
-        # Continue without page source if extraction fails? Or return empty?
-        # Let's return empty for safety.
-        driver.quit()
-        return {"data": []} # Return dict with data key
+        print(f"ERROR extracting page source: {e}")
+        if not page_source:
+             if driver: driver.quit()
+             return {"data": []}
 
+    # --- Close WebDriver ---
     print("Closing WebDriver...")
-    driver.quit()
-    print("WebDriver closed.")
+    try:
+        driver.quit()
+        print("WebDriver closed.")
+    except Exception as e: print(f"Error closing WebDriver: {e}")
 
+    # --- Parse HTML ---
     if not page_source:
-         print("No page source obtained, cannot parse.")
-         return {"data": []}
-
+        print("Cannot parse, page source is empty.")
+        return {"data": []}
     soup = None
     try:
         print("Parsing HTML with BeautifulSoup...")
         soup = BeautifulSoup(page_source, "html.parser")
         print("HTML parsed successfully.")
     except Exception as e:
-        print(f"Error parsing HTML: {e}")
-        return {"data": []} # Return dict with data key
+        print(f"ERROR parsing HTML: {e}")
+        return {"data": []}
 
+    # --- Find News Item Containers (Using YOUR specific working selector) ---
     news_items = []
     try:
-        print("Searching for news items...")
-        # Make selector more robust if possible
-        news_items = soup.find_all("div", class_="news_Itm") # Example: Adjust if needed
-        # If the above doesn't work, revert to 'a', class_='NwsLstPg_img' but be aware it might change
-        # news_items = soup.find_all("a", class_="NwsLstPg_img")
-        print(f"Found {len(news_items)} potential news containers.")
+        print("Searching for news items using selector: 'a.NwsLstPg_img'...")
+        news_items = soup.find_all("a", class_="NwsLstPg_img") # YOUR SELECTOR
+        print(f"Found {len(news_items)} news items.")
+        if not news_items:
+             print("WARNING: No news items found with the selector 'a.NwsLstPg_img'!")
     except Exception as e:
-        print(f"Error finding news items containers: {e}")
-        return {"data": []} # Return dict with data key
+        print(f"ERROR finding news items: {e}")
+        return {"data": []} # Return the expected format on error
 
+    if not news_items:
+        print("Exiting scraper as no news items were found.")
+        return {"data": []}
+
+    # --- Process Each Item (Using YOUR specific working logic, NO Groq) ---
     raw_entries = []
-    processed_links = set() # Avoid duplicates based on link
+    processed_links = set()
+    print(f"Processing {len(news_items)} found items...")
 
-    for item in news_items:
+    for index, item in enumerate(news_items):
+        print(f"\n--- Processing Item {index + 1} ---")
         try:
-            # Find link within the container first
-            link_element = item.find("a", href=True)
-            if not link_element: continue # Skip if no link found
+            # --- Extract Data using YOUR specific logic ---
+            date_time_element = item.find("span", class_="NwsLstPg_ovl-dt-nm")
+            date_time = date_time_element.get_text(strip=True) if date_time_element else "N/A"
+            print(f"  Raw Date/Time Text: {date_time}")
 
-            link = link_element['href']
-            if link in processed_links: continue # Skip duplicate link
+            img_element = item.find("img", class_="NwsLstPg_img-full")
+            headline = img_element.get("title", "N/A") if img_element else "N/A"
+            print(f"  Headline: {headline}")
+
+            # Check if headline is valid before proceeding
+            if not headline or headline == "N/A":
+                 print(f"  WARNING: Skipping item {index+1} due to missing headline.")
+                 continue
+
+            link = item.get("href", "N/A") # Use .get for safety
+            print(f"  Link: {link}")
+            if link == "N/A":
+                 print(f"  WARNING: Skipping item {index+1} due to missing link.")
+                 continue
+
+            # Skip duplicates based on link
+            if link in processed_links:
+                print(f"  Skipping duplicate link: {link}")
+                continue
             processed_links.add(link)
 
-            # Now find other elements relative to the container 'item'
-            headline_element = item.find(['h2', 'h3'], class_='newsHdng') # Adjust tags/classes as needed
-            headline = headline_element.get_text(strip=True) if headline_element else "N/A"
-            if headline == "N/A": # Fallback using img title if heading not found
-                 img_element = item.find("img", title=True)
-                 headline = img_element.get("title", "N/A") if img_element else "N/A"
-
-            if headline == "N/A" or not headline.strip(): continue # Skip if no headline
-
-            img_element = item.find("img", src=True)
             image_url = img_element.get("src", "N/A") if img_element else "N/A"
+            print(f"  Image URL: {image_url}")
 
-            date_time_element = item.find("span", class_="posted-by") # Adjust class as needed
-            date_time_text = date_time_element.get_text(strip=True) if date_time_element else "N/A"
+            news_id = str(uuid.uuid4()) # Generate ID here
 
-            # --- Basic Date/Time Parsing (NEEDS ADJUSTMENT based on ACTUAL format) ---
-            # This part is highly dependent on the website's current format
-            # Example: "Updated: June 10, 2024 10:00 IST" or "Reported by ... | Monday June ..." etc.
-            # You'll need to inspect the element and write robust parsing logic
+            # REMOVED: extracted_data = extract_location_and_crime_type(headline)
+            # REMOVED: location = extracted_data.get("location", "N/A")
+            # REMOVED: crime_type = extracted_data.get("crime_type", "N/A")
+
+            # --- Parse Date/Time using YOUR split logic ---
             formatted_date = "N/A"
             formatted_time = "N/A"
-            try:
-                # Attempt a simple split if format is consistent
-                parts = date_time_text.split('|')[-1].strip().split() # Example logic
-                if len(parts) > 3:
-                    formatted_date = " ".join(parts[:3]) # e.g., "June 10, 2024"
-                    formatted_time = " ".join(parts[3:]) # e.g., "10:00 IST"
-                else:
-                    formatted_date = date_time_text # Fallback
-            except Exception:
-                 formatted_date = date_time_text # Fallback on error
+            if date_time != "N/A":
+                try:
+                    date_parts = date_time.split()
+                    # Assuming format like "Month Day, Year | HH:MM AM/PM IST"
+                    if len(date_parts) >= 5: # Need at least Month, Day, Year, Time, AM/PM
+                         # Your original format: MonthDay,Year (e.g., Mar18,2025)
+                         month = date_parts[0][:3] # Abbreviate month
+                         day = date_parts[1].replace(',', '')
+                         year = date_parts[2].replace(',', '')
+                         formatted_date = f"{month}{day},{year}"
+
+                         # Your original format: HH:MMam/pm (e.g., 12:45pm)
+                         time_part = date_parts[4].lower() # Get the time part like '12:45pm'
+                         formatted_time = time_part
+                         print(f"  Parsed Date: {formatted_date}, Parsed Time: {formatted_time}")
+                    else:
+                         print(f"  WARNING: date_time string '{date_time}' doesn't have enough parts for expected split.")
+                         formatted_date = date_time # Fallback
+                except IndexError as e:
+                     print(f"  ERROR parsing date/time string '{date_time}' using split: {e}. Falling back.")
+                     formatted_date = date_time # Fallback
+                except Exception as e:
+                     print(f"  UNEXPECTED ERROR parsing date/time string '{date_time}': {e}. Falling back.")
+                     formatted_date = date_time # Fallback
+            else:
+                 print("  WARNING: Raw date_time was N/A.")
 
 
-            # REMOVE call to extract_location_and_crime_type
-            # location = extracted_data.get("location", "N/A")
-            # crime_type = extracted_data.get("crime_type", "N/A")
-
-            # Create raw entry, location/type added later in app.py
+            # --- Create Raw Entry dictionary (NO 'type', 'location') ---
             raw_entry = {
                 "content": headline,
-                "date": formatted_date,
-                "id": str(uuid.uuid4()),
+                "date": formatted_date, # Use parsed value
+                "id": news_id,
                 "imageUrl": image_url,
                 "readMoreUrl": link,
-                "time": formatted_time,
+                "time": formatted_time, # Use parsed value
                 "url": link
-                # REMOVE "type": crime_type,
-                # REMOVE "location": location
             }
             raw_entries.append(raw_entry)
+            print(f"  Successfully processed item {index + 1}")
+
         except Exception as e:
-            print(f"Error processing news item container: {e}")
+            # Log error for this specific item but continue with others
+            print(f"ERROR processing item {index + 1} (Link: {item.get('href', 'N/A')}): {e}")
+            import traceback
+            traceback.print_exc() # Print full traceback for debugging the item error
             continue # Skip this item
 
-    print(f"Successfully processed {len(raw_entries)} unique news items from NDTV.")
+    print(f"\n--- NDTV Scraper Finished ---")
+    print(f"Successfully processed {len(raw_entries)} unique news items.")
+    # --- Return in the required {"data": [...]} format ---
     return {"data": raw_entries}
