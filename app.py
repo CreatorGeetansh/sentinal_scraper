@@ -90,7 +90,7 @@ import logging
 CACHE_UPDATE_INTERVAL_SECONDS = 600 # Update cache every 10 minutes
 GROQ_API_KEY = os.environ.get("api_key")
 GROQ_MODEL = "llama3-8b-8192"
-GROQ_REQUEST_DELAY_SECONDS = 1.0 # Delay between Groq API calls to avoid rate limits
+GROQ_REQUEST_DELAY_SECONDS = 2.2 # Delay between Groq API calls to avoid rate limits
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
